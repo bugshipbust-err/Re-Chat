@@ -35,17 +35,12 @@ text_sep_splitter = RecursiveCharacterTextSplitter(
 
 sample = load_txt(f_name="neel_text.txt")
 text_splits = text_sep_splitter.split_text(sample)
-print(text_splits[:3])
 
 documents = [Document(page_content=text_split) for text_split in text_splits]
 document_ids = vector_store.add_documents(documents=documents)
-
-print(len(document_ids) == len(text_splits))
-print(document_ids[:2])
 
 query = "neel nanda"
 retrieved_docs = vector_store.similarity_search(query, k=2)
 
 print(retrieved_docs)
-
 
