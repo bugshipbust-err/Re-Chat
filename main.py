@@ -1,19 +1,19 @@
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain.agents.structured_output import ToolStrategy
+from langchain_chroma import Chroma
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
 
+from pydantic import BaseModel, Field
+from typing import List
+
+from prompt_gallery import system_prompt, retriever_desc, tool_message_content
+
 # ------------------------------------------------------------------------------------------------------------------------------- #
-system_prompt = """
-You are a helpful assistant who responds with personalized responses to Neel's queries, who is the user.
-Keep your reponses really concise, short and straight to the point.
-"""
-retriever_desc = """
-This is a user data retrieval tool that searches data relavant to you queries. Use this to answer queries that need additional information about the user
-"""
 
 llama = ChatOllama(model="llama3.1")
 gemma = ChatOllama(model="gemma3:12b")
@@ -23,7 +23,7 @@ embeddings = OllamaEmbeddings(model="embeddinggemma:300m")
 vector_store = Chroma(
         collection_name="chroma_db",
         embedding_function=embeddings,
-        persist_directory="./chroma_langchain_db",
+        persist_directory="./private/chroma_langchain_db",
     )
 text_sep_splitter = RecursiveCharacterTextSplitter(
         separators=".",
@@ -32,23 +32,33 @@ text_sep_splitter = RecursiveCharacterTextSplitter(
         chunk_overlap=0,
     )
 
-# ------------------------------------------------------------------------------------------------------------------------------- #
+class QueryList(BaseModel):
+    queries: List[str] = Field(
+        description="A list of text queries for vector search"
+    )
 
+# ------------------------------------------------------------------------------------------------------------------------------- #
 
 @tool("user_data_retriever", description=retriever_desc)
 def get_user_data(queries):
-    return ["User works on LLM interpretablity", "He likes to code", "Uses neo-vim", "Works on a 3090 machine running linux mint"] 
-
+    ret_str = ""
+    for query in queries:
+        print(query)
+        retrieved_docs = vector_store.similarity_search(query, k=2)
+        stitched_text_data = [doc.page_content for doc in retrieved_docs]
+        ret_str += "\n".join(stitched_text_data)
+    return ret_str
 
 agent = create_agent(
         model,
         tools=[get_user_data],
+        response_format=ToolStrategy(schema=QueryList, tool_message_content=tool_message_content),
         system_prompt=system_prompt,
-    )
-
-messages = []
+)
 
 # ------------------------------------------------------------------------------------------------------------------------------- #
+
+messages = []
 
 while True:
     user_query = input("You: ")
@@ -62,12 +72,11 @@ while True:
 
             if step == "model" and last_content_block[-1]["type"] == "text":    # last_content_block is a list - batch ig - so 1 
                 model_response = last_content_block[-1]["text"]
-                print(f"content: {model_response}")
+                print(f"\n\nModel Response:\n{model_response}")
                 messages.append({"role": "assistant", "content": model_response}) 
             else:
-                print(f"step: {step}")
+                print(f"\n\nstep: {step}")
                 print(f"content: {data['messages'][-1].content_blocks}")
 
 # ------------------------------------------------------------------------------------------------------------------------------- #
 
-print(len(messages))

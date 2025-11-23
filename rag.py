@@ -16,7 +16,7 @@ embeddings = OllamaEmbeddings(model="embeddinggemma:300m")
 vector_store = Chroma(
         collection_name="chroma_db",
         embedding_function=embeddings,
-        persist_directory="./chroma_langchain_db",
+        persist_directory="./private/chroma_langchain_db",
     )
 
 text_splitter = RecursiveCharacterTextSplitter(
@@ -33,12 +33,12 @@ text_sep_splitter = RecursiveCharacterTextSplitter(
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
 
-sample = load_txt(f_name="neel_text.txt")
-text_splits = text_sep_splitter.split_text(sample)
-
-documents = [Document(page_content=text_split) for text_split in text_splits]
-document_ids = vector_store.add_documents(documents=documents)
-
+# sample = load_txt(f_name="neel_text.txt")
+# text_splits = text_sep_splitter.split_text(sample)
+# 
+# documents = [Document(page_content=text_split) for text_split in text_splits]
+# document_ids = vector_store.add_documents(documents=documents)
+ 
 query = "neel nanda"
 retrieved_docs = vector_store.similarity_search(query, k=2)
 
