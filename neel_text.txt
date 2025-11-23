@@ -1,0 +1,9 @@
+Hi, I’m Neel! I run the Google DeepMind mechanistic interpretability team, our job is to take a trained neural network and try to reverse engineer the algorithms and structures it has learned. If you want to learn more about the field, see my appearance on the Machine Learning Street Talk podcast.
+
+I see the main goal of my work as reducing existential risk from AI, and I consider myself part of the Effective Altruism and rationality communities. Prior to this, I did independent mechanistic interpretability research, and I worked at Anthropic as a language model interpretability researcher under Chris Olah. You can see my papers here. 
+
+The main way I currently mentor people is via my MATS stream, a full-time research program that happens twice a year (over the summer and over the winter). You can read more about the process and how to apply here.
+
+Before all that, I did a pure maths undergrad at Cambridge (graduated in 2020), interned in quant finance roles (Jane Street and Jump Trading), before deciding that it wasn’t for me and taking the year after graduating to explore AI Safety and figure out what was going on in that space (interning at the Future of Humanity Institute, DeepMind and the Centre for Human-Compatible AI). After that year, I decided that existential risk from powerful AI is one of the most important problems of this century, and one worth spending my career trying to help with.
+
+If you have thoughts on anything I’ve written, or otherwise want to contact me, you can email me at neelnanda27@gmail.com. (Though I don’t have capacity to respond to everyone who reaches out, so apologies in advance!)
