@@ -5,16 +5,23 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Dict
 
-from prompt_gallery import query_gen_prompt
+from prompt_gallery import query_gen_prompt, convo_summary_prompt
+from test_data import conversations
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
 
-class QueryList(BaseModel):
+class StringList(BaseModel):
     """ Used to suggest agent the 'QueryList' response format """
     queries: List[str] = Field(
         description="A list of text queries for vector search"
+    )
+
+class Boolean(BaseModel):
+    """ Used to suggest agent the 'QueryList' response format """
+    queries: bool = Field(
+        description="A boolean value, either 'True' or 'False'"
     )
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
@@ -27,20 +34,19 @@ class UserRAG:
             db_path: str,
             text_splitter: str,
         ):
-        """ 
-        Initializing:
-            query_agent     : returns a list of sub queries for an input query
-            vector_store    : persistant vector database containing user information
-        """
-        self.query_agent = create_agent(
+        self.db_manager = create_agent(
                 ChatOllama(model=query_model_name),
-                response_format=QueryList,
+                response_format=StringList,
+            )
+        self.db_manager = create_agent(
+                ChatOllama(model=query_model_name),
+                response_format=,
             )
 
-        embedding_model = OllamaEmbeddings(model=embedding_model_name)
+
         self.vector_store = Chroma(
                 collection_name="chroma_db",
-                embedding_function=embedding_model,
+                embedding_function=OllamaEmbeddings(model=embedding_model_name),
                 persist_directory=db_path,
             )
         self.text_sep_splitter = RecursiveCharacterTextSplitter(
@@ -50,40 +56,47 @@ class UserRAG:
                 chunk_overlap=0,
             )
 
-    def generate_queries(
+
+    def prompt_invoke(
             self,
+            prompt: str,
             query: str,
         ) -> List[str]:
-        """
-        This method requests our query_agent to generate sub-queries for the user query
-        Working:
-            - passes in query_gen_prompt along with the query to the agent
-                - query_gen_prompt  : instructions to return a list of sub queries
-                - query             : query from main agent's tool call
-        """
         messages = [
-                {"role": "system", "content": query_gen_prompt},
+                {"role": "system", "content": prompt},
                 {"role": "user", "content": query}
             ]
-        model_response = self.query_agent.invoke({
-                "messages": messages
+        agent_response = self.db_manager.invoke({
+                "messages": messages,
             })
 
-        return model_response
+        return agent_response
+
+
+    def stitch_convo(
+            self,
+            conversation, 
+        ):
+        formatted_conversation = ""
+
+        for message in conversation:
+            role = message['role'].upper()
+            content = message['content']
+            formatted_conversation += f"{role}: {content}\n\n"
+        
+        return formatted_conversation.strip() 
+
 
     def retrieve_data(
             self,
-            sub_queries,
+            query,
             k,
         ):
-        """
-        Retrieve query data from the vector_store
-        Algorithm:
-            - run through every sub query, and get 'k' closest results for each of them
-            - stitch them 'k' results together
-            - append them to 'retrieved_data'
-            - return 'retrieved_data'
-        """
+        sub_queries = self.prompt_invoke(
+                prompt=query_gen_prompt,
+                query=query,
+            )["structured_response"].queries
+
         retrieved_data = []
         for query in sub_queries:
             retrieved_docs = self.vector_store.similarity_search(query, k=k)
@@ -92,6 +105,19 @@ class UserRAG:
 
         return retrieved_data
 
+
+    def injest_data(
+            self,
+            conversation: str,
+        ):
+        convo_str = self.stitch_convo(conversation)
+        user_data_list = self.prompt_invoke(
+                prompt=convo_summary_prompt, 
+                query=convo_str, 
+            )["structured_response"].queries
+       
+        return user_data_list
+         
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
 
@@ -106,13 +132,12 @@ def test(user_query):
             text_splitter="somesplitter",
         )
 
-    agent_out = rag_agent.generate_queries(user_query)
-    queries = agent_out["structured_response"].queries
-    retrieved_data = rag_agent.retrieve_data(queries=queries, k=1)
-
+    retrieved_data = rag_agent.retrieve_data(query=user_query, k=2)
     for data in retrieved_data:
         print(len(data))
 
-
-# test_query = "how many years would a random guy with a undergrad degree need to reach a career position where im right now"
-# test(user_query=test_query)
+    print(rag_agent.injest_data(conversations[1]))
+    
+# move this to test_data.py
+test_query = "how many years would a random guy with a undergrad degree need to reach a career position where im right now"
+test(user_query=test_query)

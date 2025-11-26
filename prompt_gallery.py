@@ -27,6 +27,36 @@ query_gen_prompt = (
         "\t\tyour output: ['date of birth']\n"
     )
 
+convo_summary_prompt = (
+    "Given the conversation below between a USER and an ASSISTANT. Your job is to return a list of facts about the USER "
+    "that you have learned from the conversation provided as a query. These facts should be concise, simple, and directly "
+    "based on the user's statements during the conversation. The facts should reflect important details such as the "
+    "user's interests, experiences, recent activities, and preferences. "
+    "Your output should be a **list of simple factual statements** that summarize key points about the user. \n\n"
+
+    "**EXAMPLE: **\n"
+    "\t*query: *\n"
+    "\t\tUSER: Hey, how are you doing?\n"
+    "\t\tASSISTANT: Hey! I'm good, thanks. How can I help you today?\n"
+    "\t\tUSER: I recently got invited to a podcast about my career and research journey. Can you help me summarize that?\n"
+    "\t\tASSISTANT: Sure! Here's a quick summary of your career and research journey...\n"
+    "\t\tUSER: Thanks, I also started working with IoT stuff. I'm using ESP32 modules and writing shell scripts.\n"
+    "\t\tASSISTANT: That's awesome! Sounds like you're really into IoT projects now!\n"
+    "\t\tUSER: I just recieved my new keyboard and i love it! it's really thockey.\n"
+    "\t\tASSISTANT: Nice! A good keyboard can definitely boost your productivity!\n"
+    "\t\tUSER: Yeah, but its not exactly a perfomance booster but definitely makes me want to type more. Hahaa!\n\n"
+    
+    "\t*Your response: *\n"
+    "\t\t['User was invited to a podcast about their career and research journey', "
+    "'User recently started working with IoT, using ESP32 modules and writing shell scripts',"
+    "'User loves their new thockey keyboard and enjoys typing on it.']\n\n"
+
+    "The facts should be objective and specific to the user.\n\n"
+    "Be sure to extract *ONLY factual information about the user*, *NOT general comments* made by the user like: "
+    "1. im doing good\t2. he wanted a summary of on his career\t3. his new keyboard didnt boost his productivity but made "
+    "him type more. \n"
+) 
+
 retriever_desc = "Gives you user-details. They *might* contain information you need to answer the query"
 
 # ------------------------------------------------------ NOT - IN - USE -------------------------------------------------------- #

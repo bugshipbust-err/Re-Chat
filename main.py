@@ -34,8 +34,7 @@ rag_system = UserRAG(
 def get_user_data(
         user_query: str
     ) -> List[str]:
-    sub_queries = rag_system.generate_queries(user_query)
-    data_list = rag_system.retrieve_data(sub_queries=sub_queries, k=1)
+    data_list = rag_system.retrieve_data(query=user_query, k=1)
     return data_list
 
 
