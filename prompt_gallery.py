@@ -57,6 +57,31 @@ convo_summary_prompt = (
     "him type more. \n"
 ) 
 
+analyze_strings_prompt = (
+    "Given the two strings below, your job is to analyze and return a single boolean value: "
+    "The boolean should indicate whether the information in Str-1 a replacement to Str-2 or not.\n Which in simpler terms "
+    "can be framed as, Is *all* the information in Str-2 either *explicitly present* or *implied* in Str-1. "
+    "If yes, then replacement: False, else replacement: True\n\n"
+    
+    "**EXAMPLE:**\n"
+    "\t*Query:*\n"
+    "\t\tStr-1: 'He recently adopted a Golden Retriever and takes it for a walk every evening.'\n"
+    "\t\tStr-2: 'The user has a dog.'\n"
+    "\t*Your response:*\n"
+    "\t\treplacement: True\n"
+    "\nExplanation: The second string 'The user has a dog' is implied in the first string because the user mentions adopting "
+    "a Golden Retriever, which obviously is a dog. Therefore, the information is contained, and the response is `True`.\n\n"
+
+    "**EXAMPLE:**\n"
+    "\t*Query:*\n"
+    "\t\tStr-1: 'User got a new car.'\n"
+    "\t\tStr-2: 'He loves playing the guitar sitting alone in the car he bought.'\n"
+    "\t*Your response:*\n"
+    "\t\treplacement: False\n"
+    "\nExplanation: str-1 does contain information about user's new car, but is missing information about how he loves to "
+    "the guitar.\n\n" 
+)
+
 retriever_desc = "Gives you user-details. They *might* contain information you need to answer the query"
 
 # ------------------------------------------------------ NOT - IN - USE -------------------------------------------------------- #

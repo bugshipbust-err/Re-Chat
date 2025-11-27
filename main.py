@@ -18,13 +18,13 @@ from prompt_gallery import system_prompt, retriever_desc
 
 query_model = "llama3.1"
 embedding_model = "embeddinggemma:300m"
-vector_db_path = "./private/chroma_langchain_db"
+vector_db_path = "./private/chroma_langchain_db[test]"
 text_splitter = "nothing yet"
 
 # ------------------------------------------------------------------------------------------------------------------------------- #
 
 rag_system = UserRAG(
-        query_model_name=query_model,
+        model_name=query_model,
         embedding_model_name=embedding_model,
         db_path=vector_db_path,
         text_splitter=text_splitter,
@@ -60,11 +60,14 @@ while True:
 
             if step == "model" and last_content_block[-1]["type"] == "text":    # last_content_block is a list - batch ig - so 1 
                 model_response = last_content_block[-1]["text"]
-                print(f"\nModel Response:\n{model_response}")
+                print(f"Model Response: {model_response}\n")
                 messages.append({"role": "assistant", "content": model_response}) 
             else:
-                print(f"\nstep: {step}")
-                print(f"content: {data['messages'][-1].content_blocks}")
+                print(f"step: {step}")
+                print(f"content: {data['messages'][-1].content_blocks}\n")
+
+
+rag_system.injest(messages)
 
 # ------------------------------------------------------------------------------------------------------------------------------- #
 
