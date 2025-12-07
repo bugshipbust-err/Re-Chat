@@ -5,16 +5,17 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
 from pydantic import BaseModel, Field
-from typing import List, Dict
+from typing import List, Dict, Literal
 
 from prompt_gallery import query_gen_prompt, convo_summary_prompt, analyze_strings_prompt
 from test_data import conversations
+from rag_utils import make_single_query, format_conversation
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
 
 class StringList(BaseModel):
     """ Used to suggest agent the 'QueryList' response format """
-    queries: List[str] = Field(description="A list of text queries for vector search")
+    queries: List[str] = Field(description="A list of strings")
 
 class Choices(BaseModel):
     """ Used to suggest agent the 'Choices' response format """
@@ -31,12 +32,12 @@ class UserRAG:
             db_path: str,
             text_splitter: str,
         ):
-        self.db_manager = create_agent(
+        self.stringlist_agent = create_agent(
                 ChatOllama(model=model_name),
                 response_format=StringList,
             )
-        self.content_manager = create_agent(
-                ChatOllama(model=model_name),
+        self.decision_agent = create_agent(
+                ChatOllama(model=model_name, format="json"),
                 response_format=Choices,
             )
 
@@ -51,64 +52,16 @@ class UserRAG:
                 chunk_size=1,               # force splitting at separator
                 chunk_overlap=0,
             )
-
-
-    def prompt_invoke(
-            self,
-            prompt: str,
-            query: str,
-        ) -> List[str]:
-        messages = [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": query}
-            ]
-        agent_response = self.db_manager.invoke({
-                "messages": messages,
-            })
-
-        return agent_response
-
-    def get_relation(
-            self,
-            prompt: str,
-            str1: str,
-            str2: str,
-        ):
-        messages = [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Str-1: {str1}\nStr-2: {str2}"}
-            ]
-        agent_response =  self.content_manager.invoke({
-                "messages": messages,
-            })
-
-        return agent_response["structured_response"]
-
-
-    def stitch_convo(
-            self,
-            conversation: List, 
-        ):
-        formatted_conversation = ""
-
-        for message in conversation:
-            role = message['role'].upper()
-            content = message['content']
-            formatted_conversation += f"{role}: {content}\n\n"
-        
-        return formatted_conversation.strip() 
-
-
-    def convo_summary(
+    
+    def extract_user_summary(
             self,
             conversation: List,
         ):
-        convo_str = self.stitch_convo(conversation)
-        user_data_list = self.prompt_invoke(
-                prompt=convo_summary_prompt, 
-                query=convo_str, 
-            )["structured_response"].queries
-       
+        convo_str = format_conversation(conversation)
+        user_data_list = self.stringlist_agent.invoke({
+                "messages": make_single_query(sys_prompt=convo_summary_prompt, usr_query=convo_str)
+            })["structured_response"].queries
+
         return user_data_list
 
  
@@ -117,10 +70,9 @@ class UserRAG:
             query,
             k,
         ):
-        sub_queries = self.prompt_invoke(
-                prompt=query_gen_prompt,
-                query=query,
-            )["structured_response"].queries
+        sub_queries = self.stringlist_agent.invoke({
+                "messages": make_single_query(sys_prompt=query_gen_prompt, usr_query=query)
+            })["structured_response"].queries
 
         retrieved_data = []
         for query in sub_queries:
@@ -134,15 +86,31 @@ class UserRAG:
     def injest_data(
             self,
             conversation: List,
+            ret: Literal["items","ids"]=None,
         ):
-        user_data_list = self.convo_summary(conversation)
-        for item in user_data_list:
-            closest_item = self.vector_store.similarity_search(item, k=1)[0].page_content
-            replacement = self.rag_agent.get_relation(prompt=analyze_strings_prompt, str1=closest_item, str2=item)
-            print(replacement)  
+        user_data_list = self.extract_user_summary(conversation)
 
-        return user_data_list
-         
+        new_user_info = []
+        for item in user_data_list:
+            try:
+                closest_item = self.vector_store.similarity_search(item, k=1)[0].page_content
+            except Exception:
+                closest_item = ""
+
+            messages = make_single_query(sys_prompt=analyze_strings_prompt, usr_query=f"Str-1: {closest_item}\nStr-2: {item}")
+            is_replacement = self.decision_agent.invoke({"messages": messages})["structured_response"].replacement
+
+            if not is_replacement:
+                print(f"Injesting: {item}")
+                new_user_info.append(item)
+            else:
+                print(f"Skipping: {item}")
+
+        ids = self.vector_store.add_texts(texts=new_user_info)
+        if ret == "items":
+            return new_user_info 
+        if ret == "ids":
+            return ids
 
 # ------------------------------------------------------------------------------------------------------------------------------ #
 
@@ -156,12 +124,13 @@ def test(user_query, str1, str2):
             db_path="./private/chroma_langchain_db",
             text_splitter="somesplitter",
         )
-
+    
+    # print(rag_agent.extract_user_summary(conversations[1]))
     # retrieved_data = rag_agent.retrieve_data(query=user_query, k=1)
     # for data in retrieved_data:
-    #     print(len(data))
+    #     print(data)
 
-    # print(rag_agent.injest_data(conversations[1]))
+    # print(rag_agent.injest_data(conversations[1], ret="items"))
     # print(rag_agent.get_relation(prompt=analyze_strings_prompt, str1=str1, str2=str2))
 
     
@@ -169,4 +138,5 @@ def test(user_query, str1, str2):
 str1 = "user was invited to a podcast where he spoke about his research work and his journey"
 str2 = "he was also invited to some other podcasts in the past"
 test_query = "how many years would a random guy with a undergrad degree need to reach a career position where im right now"
+test_query = "RTX 3090"
 test(user_query=test_query, str1=str1, str2=str2)

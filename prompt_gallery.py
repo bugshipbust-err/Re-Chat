@@ -2,7 +2,7 @@
 # ---------------------------------------------------------- IN - USE ---------------------------------------------------------- #
 
 system_prompt = """
-You are a helpful assistant who responds with personalized responses to Neel's queries, who is the user.
+You are a helpful assistant who responds with personalized responses to Siva Krishna's queries, who is the user.
 Keep your reponses really concise, short and straight to the point.
 
 When using the `user_data_retriever` tool:
@@ -28,7 +28,7 @@ query_gen_prompt = (
     )
 
 convo_summary_prompt = (
-    "Given the conversation below between a USER and an ASSISTANT. Your job is to return a list of facts about the USER "
+    "Given the conversation below between a USER and an ASSISTANT. Your job is to return a list of facts **only** about the USER "
     "that you have learned from the conversation provided as a query. These facts should be concise, simple, and directly "
     "based on the user's statements during the conversation. The facts should reflect important details such as the "
     "user's interests, experiences, recent activities, and preferences. "
@@ -55,6 +55,9 @@ convo_summary_prompt = (
     "Be sure to extract *ONLY factual information about the user*, *NOT general comments* made by the user like: "
     "1. im doing good\t2. he wanted a summary of on his career\t3. his new keyboard didnt boost his productivity but made "
     "him type more. \n"
+    "DO NOT include any other random information or facts from the conversation like: "
+    "1. Stars live for billions of years\t2. Sun raises in the east because the Earth Rotates from West to East\t"
+    "3. People really love Billie Eilish"
 ) 
 
 analyze_strings_prompt = (
@@ -62,7 +65,16 @@ analyze_strings_prompt = (
     "The boolean should indicate whether the information in Str-1 a replacement to Str-2 or not.\n Which in simpler terms "
     "can be framed as, Is *all* the information in Str-2 either *explicitly present* or *implied* in Str-1. "
     "If yes, then replacement: False, else replacement: True\n\n"
-    
+
+     "**EXAMPLE:**\n"
+    "\t*Query:*\n"
+    "\t\tStr-1: 'Before all that, I did a pure maths undergrad at Cambridge, interned in quant finance, "
+    "before deciding that it wasn_t for me and taking the year after graduating to explore AI Safety.'\n" 
+    "\t\tStr-2: 'User is into gaming and built a custom PC with an Intel i7, 32GB RAM, and an RTX 3070 graphics card.'\n"
+    "\t*Your response:*\n"
+    "\t\treplacement: False\n"
+    "\nExplanation: The information in Str-1 does not contain any information about the user's PC and it's specs.\n\n"
+
     "**EXAMPLE:**\n"
     "\t*Query:*\n"
     "\t\tStr-1: 'He recently adopted a Golden Retriever and takes it for a walk every evening.'\n"
@@ -80,6 +92,8 @@ analyze_strings_prompt = (
     "\t\treplacement: False\n"
     "\nExplanation: str-1 does contain information about user's new car, but is missing information about how he loves to "
     "the guitar.\n\n" 
+    
+    "Return ONLY 'replacement'"
 )
 
 retriever_desc = "Gives you user-details. They *might* contain information you need to answer the query"
